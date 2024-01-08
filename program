@@ -1,0 +1,915 @@
+// By: Radha Kotra and Alexandra Miller
+// This program creates and controls the seating for a small theatre.
+
+import java.awt.*;
+import hsa.Console;
+import javax.swing.JOptionPane;
+import java.io.*;
+
+public class Theatre
+{
+    //Declaration Statements
+    static Console c; // The output console
+    FileWriter seatFile;
+    PrintWriter output;
+    BufferedReader input;
+    Font body = new Font ("Malgun Gothic", 1, 14);
+    //Variables
+    int numTickets; //stores the number of tickets a user wants to purchase at once
+    int counter = 1; // counts the number of times askData runs
+    final double HST = 0.13; //stores the tax
+    char menuChoice; //stores the users selection from the menu
+    char seatChar; // checks to see if the seat is occupied
+    char numberKeyChar; // stores all the digits individually
+    String sNumTickets; //stores the number of tickets that the user wants to buy in a String
+    String numberKey = "0123456789"; //stores all the numbers and is used for errortrapping
+    String lastName; //stores the users last name
+    //Arrays
+    int[] seatNumList; //stores the number of tickets the user wants to buy in String
+    String[] seats = new String [600]; //holds all of the seat numbers the user wants to buy
+    String[] sSeatNumList; //stores all the seat numbers the user wants to buy in String
+
+    public Theatre ()
+    {
+        c = new Console (25, 100, "ICS3UF ISP"); //creating the output console
+    }
+
+
+    public void splashScreen ()
+    {
+        arTheatre ();
+        Color lights = new Color (255, 255, 255, 100); //beam (transparent white)
+        Color floorBoards = new Color (178, 89, 0); //floorboard lines (brown)
+        Color stage = new Color (234, 118, 50); //stage
+        Color backWall = new Color (84, 14, 48); //back wall (purple)
+        for (int y = 0 ; y < 100 ; y++) //animatining the cloud
+        {
+            synchronized (c)   // to prevent colours from changing at the same time
+            {
+                c.setColor (backWall);
+                c.fillRect (280, 175, 250, 200); //making a rectangle the same colour as the background
+                c.setColor (Color.white); //clouds
+                c.drawLine (399, 129, 399, 175 + y); //cloud string
+                c.drawLine (400, 129, 400, 175 + y); //^
+                c.drawLine (401, 129, 401, 175 + y); //^
+                c.fillArc (340, 175 + y, 120, 200, 0, 180); //middle part of cloud
+                c.fillArc (295, 225 + y, 50, 100, 0, 180); //left part of cloud
+                c.fillArc (455, 235 + y, 60, 80, 0, 180); //right part of cloud
+                c.setColor (Color.black); //black
+                c.setFont (new Font ("Century", 1, 24)); //setting the title font
+                c.drawString ("AR", 380, 220 + y); //part of title
+                c.setFont (new Font ("Century", 1, 18)); //setting the title font
+                c.drawString ("Theatre", 365, 245 + y); //part of title
+                c.setFont (new Font ("Century", 1, 11)); //setting the title font
+                c.drawString ("Alexandra Miller and Radha Kotra", 302, 272 + y); //names
+                try
+                {
+                    Thread.sleep (30);
+                }
+                catch (Exception e)
+                {
+                }
+            }
+        }
+        c.setColor (lights);
+        int leftBeamX[] = {287, 313, 363, 237}; //making the left beam appear
+        int leftBeamY[] = {82, 82, 425, 425}; //^
+        c.fillPolygon (leftBeamX, leftBeamY, 4); //left beam
+        c.setColor (stage);
+        c.fillOval (237, 400, 126, 50); //stage floor
+        c.setColor (floorBoards);
+        c.drawLine (232, 470, 334, 376); //more floorboards
+        c.drawLine (233, 470, 335, 376);
+        c.drawLine (312, 472, 369, 376);
+        c.drawLine (313, 472, 370, 376);
+        c.setColor (lights);
+        c.fillOval (237, 399, 126, 50); //left beam on floor
+        c.setColor (lights);
+        int rightBeamX[] = {487, 513, 563, 437}; //making the right beam appear
+        int rightBeamY[] = {82, 82, 425, 425}; //^
+        c.fillPolygon (rightBeamX, rightBeamY, 4); //right beam
+        c.setColor (stage);
+        c.fillOval (437, 400, 126, 50); //stage floor
+        c.setColor (floorBoards);
+        c.drawLine (430, 376, 487, 472); //rest of floorboards
+        c.drawLine (431, 376, 488, 472);
+        c.drawLine (465, 376, 562, 470);
+        c.drawLine (466, 376, 563, 470);
+        c.setColor (lights);
+        c.fillOval (437, 399, 126, 50); //right beam on floor
+
+        int[] iSeats = new int [600]; // stores the integer version of the giant array
+        for (int i = 0 ; i < 600 ; i++)
+        {
+            iSeats [i] = i + 1;
+            seats [i] = Integer.toString (iSeats [i]);
+        }
+
+        try
+        {
+            seatFile = new FileWriter ("ARTheatreSeats", true);
+            output = new PrintWriter (seatFile);
+        }
+        catch (IOException e)
+        {
+        }
+        String line; // stores a single line in the file
+        int indexSeatNum; // stores the index  of the semicolon
+        String sSeatNumInFile; // stores the substring that contains the occupied seat number
+        int seatNumInFile; // stores the integer version of the substring that contains the occupied seat number
+        try
+        { // Credits for the while loop and the following two lines go to Mr. Guglielmi and Ms. Cruceanu
+            input = new BufferedReader (new FileReader ("ARTheatreSeats")); // creates a BufferedReader object to read the file
+            line = input.readLine (); // reads a single line of the file
+            while (line != null) // runs until there are no more lines in the file
+            {
+                line = input.readLine (); // reads a single line of the file
+                try
+                {
+                    if (line.charAt (0) == 'S') // checks for a line containg a seat number
+                    {
+                        indexSeatNum = line.indexOf (":"); // checks to see how long the seat number is
+                        sSeatNumInFile = line.substring (5, indexSeatNum);
+                        seatNumInFile = Integer.parseInt (sSeatNumInFile);
+                        seats [seatNumInFile - 1] = "occupied"; // if the seat is occupied, then the seat number is replaced with the word occupied in the giant array
+                    }
+                }
+                catch (NullPointerException f)
+                {
+                }
+            }
+        }
+        catch (IOException e)
+        {
+        }
+
+    } //end splashScreen
+
+
+
+    public void arTheatre ()
+    {
+        Color backWall = new Color (84, 14, 48); //back wall (purple)
+        Color stage = new Color (234, 118, 50); //stage
+        Color coral = new Color (237, 149, 124); //walls (pink)
+        Color bottomStage = new Color (178, 57, 109); //underneath stage (purple)
+        Color topCurtainFolds = new Color (191, 0, 22); //top front curtains folds (red)
+        Color topCurtains2 = new Color (170, 14, 0); //top back curtains (red)
+        Color topCurt2Outline = new Color (226, 200, 0); //outline of top front curtains (yellow)
+        Color topCurt2Folds = new Color (140, 9, 0); //top back curtains folds (red)
+        Color mainCurtains = new Color (196, 19, 0); //big curtains (red)
+        Color blueLights = new Color (103, 90, 169); //light mount (blue)
+        Color lightStand = new Color (16, 20, 44); //light (blue)
+        Color lights = new Color (255, 255, 255, 100); //beam (transparent white)
+        Color floorBoards = new Color (178, 89, 0); //floorboard lines (brown)
+        Color pillarBase = new Color (233, 114, 106); //pillar base (pink)
+        Color pillarBaseShadow = new Color (156, 53, 70); //pillar base shadow (pink)
+        Color pillarRims = new Color (255, 230, 91); //rims around the pillar base (yellow)
+        Color pillarLines = new Color (216, 77, 72, 200); //pillar lines (pink transparent)
+        c.setColor (backWall);
+        c.fillRect (0, 0, 800, 500); //stage background
+        c.setColor (bottomStage);
+        c.fillRect (0, 425, 800, 125); //underneath stage floor
+        c.setColor (stage);
+        c.fillOval (0, 375, 800, 100); //stage floor
+        c.setColor (floorBoards);
+        c.drawLine (4, 432, 149, 386);
+        c.drawLine (5, 432, 150, 386);
+        c.drawLine (49, 449, 199, 382);
+        c.drawLine (50, 449, 200, 382);
+        c.drawLine (99, 457, 249, 379);
+        c.drawLine (100, 457, 250, 379);
+        c.drawLine (162, 465, 294, 377);
+        c.drawLine (163, 465, 295, 377);
+        c.drawLine (232, 470, 334, 376); //more floorboards
+        c.drawLine (233, 470, 335, 376);
+        c.drawLine (312, 472, 369, 376);
+        c.drawLine (313, 472, 370, 376);
+        c.drawLine (400, 473, 400, 376); //middle floorboard
+        c.drawLine (401, 473, 401, 376);
+        c.drawLine (430, 376, 487, 472); //rest of floorboards
+        c.drawLine (431, 376, 488, 472);
+        c.drawLine (465, 376, 562, 470);
+        c.drawLine (466, 376, 563, 470);
+        c.drawLine (510, 377, 630, 465);
+        c.drawLine (511, 377, 630, 465);
+        c.drawLine (550, 379, 692, 457);
+        c.drawLine (551, 379, 693, 457);
+        c.drawLine (600, 382, 740, 449);
+        c.drawLine (601, 382, 741, 449);
+        c.drawLine (645, 386, 790, 432);
+        c.drawLine (646, 386, 791, 432);
+        c.setColor (topCurtains2); //back top curtains
+        c.fillOval (200, 0, 200, 150);
+        c.fillOval (400, 0, 200, 150);
+        c.setColor (topCurt2Outline); //back top curtain outline
+        c.drawOval (200, 0, 200, 150);
+        c.drawOval (400, 0, 200, 150);
+        c.drawOval (200, 1, 200, 150);
+        c.drawOval (400, 1, 200, 150);
+        c.drawOval (200, 2, 200, 150);
+        c.drawOval (400, 2, 200, 150);
+        c.drawOval (200, 3, 200, 150);
+        c.drawOval (400, 3, 200, 150);
+        c.setColor (topCurt2Folds); //back top curtain folds
+        c.fillOval (200, -15, 200, 150);
+        c.fillOval (400, -15, 200, 150);
+        c.setColor (topCurtains2); //back top curtains
+        c.fillOval (200, -20, 200, 150);
+        c.fillOval (400, -20, 200, 150);
+        c.setColor (topCurt2Folds); //back top curtain folds
+        c.fillOval (200, -30, 200, 150);
+        c.fillOval (400, -30, 200, 150);
+        c.setColor (topCurtains2); //back top curtains
+        c.fillOval (200, -40, 200, 150);
+        c.fillOval (400, -40, 200, 150);
+        c.setColor (topCurt2Folds); //back top curtain folds
+        c.fillOval (200, -50, 200, 150);
+        c.fillOval (400, -50, 200, 150);
+        c.setColor (topCurtains2); //back top curtains
+        c.fillOval (200, -53, 200, 150);
+        c.fillOval (400, -53, 200, 150);
+        c.setColor (mainCurtains); //main drawstring curtains
+        int leftCurtainsX[] = {100, 290, 150, 200, 100};
+        int leftCurtainsY[] = {50, 50, 290, 425, 425};
+        c.fillPolygon (leftCurtainsX, leftCurtainsY, 5); //creating a base for the main curtain (left)
+        c.fillOval (-220, -250, 500, 575); //part of left main curtian
+        int rightCurtainsX[] = {700, 510, 650, 600, 700};
+        int rightCurtainsY[] = {50, 50, 290, 425, 425};
+        c.fillPolygon (rightCurtainsX, rightCurtainsY, 5);  //creating a base for the main curtain (right)
+        c.fillOval (520, -250, 500, 575); //part of right main curtian
+        c.setColor (topCurtains2); //main curtain fold
+        c.fillOval (-240, -260, 500, 575);
+        c.fillOval (540, -260, 500, 575);
+        c.setColor (mainCurtains); //main curtain
+        c.fillOval (-260, -260, 500, 575);
+        c.fillOval (560, -260, 500, 575);
+        c.setColor (topCurtains2); //main curtain fold
+        c.fillOval (-280, -260, 500, 575);
+        c.fillOval (580, -260, 500, 575);
+        c.setColor (mainCurtains); //main curtain
+        c.fillOval (-290, -260, 500, 575);
+        c.fillOval (590, -260, 500, 575);
+        c.setColor (topCurtains2); //main curtain fold
+        c.fillOval (-310, -260, 500, 575);
+        c.fillOval (610, -260, 500, 575);
+        c.setColor (mainCurtains); //main curtain
+        c.fillOval (-325, -260, 500, 575);
+        c.fillOval (625, -260, 500, 575);
+        c.setColor (topCurtains2); //main curtain fold
+        c.fillOval (-350, -260, 500, 575);
+        c.fillOval (650, -260, 500, 575);
+        c.setColor (mainCurtains); //main curtain
+        c.fillOval (-355, -260, 500, 575);
+        c.fillOval (655, -260, 500, 575);
+        c.setColor (topCurtains2); //main curtain fold
+        c.fillOval (-375, -260, 500, 575);
+        c.fillOval (675, -260, 500, 575);
+        c.setColor (mainCurtains); //main curtain
+        c.fillOval (-385, -260, 500, 575);
+        c.fillOval (685, -260, 500, 575);
+        c.setColor (topCurtains2); //main curtain bottom folds
+        c.drawLine (110, 290, 120, 424); //far left fold
+        c.drawLine (111, 290, 121, 424);
+        c.drawLine (112, 290, 122, 424);
+        c.drawLine (113, 290, 123, 424);
+        c.drawLine (114, 290, 124, 424);
+        c.drawLine (115, 290, 125, 424);
+        c.drawLine (116, 290, 126, 424);
+        c.drawLine (117, 290, 127, 424);
+        c.drawLine (130, 290, 145, 424); //2 fold
+        c.drawLine (131, 290, 146, 424);
+        c.drawLine (132, 290, 147, 424);
+        c.drawLine (133, 290, 148, 424);
+        c.drawLine (145, 290, 175, 424); //3 fold
+        c.drawLine (144, 290, 174, 424);
+        c.drawLine (143, 290, 173, 424);
+        c.drawLine (146, 290, 176, 424);
+        c.drawLine (147, 290, 177, 424);
+        c.drawLine (690, 290, 680, 424); //far right fold
+        c.drawLine (689, 290, 679, 424);
+        c.drawLine (688, 290, 678, 424);
+        c.drawLine (687, 290, 677, 424);
+        c.drawLine (686, 290, 676, 424);
+        c.drawLine (685, 290, 675, 424);
+        c.drawLine (684, 290, 674, 424);
+        c.drawLine (683, 290, 673, 424);
+        c.drawLine (670, 290, 655, 424); //2 fold
+        c.drawLine (669, 290, 654, 424);
+        c.drawLine (668, 290, 653, 424);
+        c.drawLine (667, 290, 652, 424);
+        c.drawLine (655, 290, 635, 424); //3 fold
+        c.drawLine (656, 290, 636, 424);
+        c.drawLine (657, 290, 637, 424);
+        c.drawLine (654, 290, 634, 424);
+        c.drawLine (653, 290, 633, 424);
+        c.setColor (Color.yellow); //yellow
+        int leftClipX[] = {100, 155, 152, 97};
+        int leftClipY[] = {283, 290, 297, 290};
+        c.fillPolygon (leftClipX, leftClipY, 4); //left main curtain clip
+        int rightClipX[] = {700, 645, 648, 703};
+        int rightClipY[] = {283, 290, 297, 290};
+        c.fillPolygon (rightClipX, rightClipY, 4); //right main curtain clip
+        c.setColor (Color.red); //front top curtains
+        c.fillOval (100, -25, 200, 150);
+        c.fillOval (300, -25, 200, 150);
+        c.fillOval (500, -25, 200, 150);
+        c.setColor (Color.yellow); //front top curtain rims
+        c.drawOval (100, -25, 200, 150);
+        c.drawOval (300, -25, 200, 150);
+        c.drawOval (500, -25, 200, 150);
+        c.drawOval (100, -24, 200, 150);
+        c.drawOval (300, -24, 200, 150);
+        c.drawOval (500, -24, 200, 150);
+        c.drawOval (100, -23, 200, 150);
+        c.drawOval (300, -23, 200, 150);
+        c.drawOval (500, -23, 200, 150);
+        c.drawOval (100, -22, 200, 150);
+        c.drawOval (300, -22, 200, 150);
+        c.drawOval (500, -22, 200, 150);
+        c.setColor (topCurtainFolds); //front top curtain folds
+        c.fillOval (100, -45, 200, 150);
+        c.fillOval (300, -45, 200, 150);
+        c.fillOval (500, -45, 200, 150);
+        c.setColor (Color.red); //red
+        c.fillOval (100, -55, 200, 150);
+        c.fillOval (300, -55, 200, 150);
+        c.fillOval (500, -55, 200, 150);
+        c.setColor (topCurtainFolds); //front top curtain folds
+        c.fillOval (100, -60, 200, 150);
+        c.fillOval (300, -60, 200, 150);
+        c.fillOval (500, -60, 200, 150);
+        c.setColor (Color.red); //red
+        c.fillOval (100, -65, 200, 150);
+        c.fillOval (300, -65, 200, 150);
+        c.fillOval (500, -65, 200, 150);
+        c.setColor (topCurtainFolds); //front top curtain folds
+        c.fillOval (100, -75, 200, 150);
+        c.fillOval (300, -75, 200, 150);
+        c.fillOval (500, -75, 200, 150); //end of front top curtains
+        c.setColor (coral); //pink
+        c.fillRect (0, 0, 800, 50); //top wall
+        c.setColor (Color.red); //red
+        c.fillOval (100, 40, 600, 25); //top red circle
+        c.setColor (coral);
+        c.fillRect (0, 0, 100, 425); //left wall
+        c.fillRect (700, 0, 100, 425); //right wall
+        c.setColor (lightStand);
+        c.fillRect (295, 50, 10, 25); //left light mount
+        c.setColor (blueLights);
+        int leftLightX[] = {283, 317, 313, 287};
+        int leftLightY[] = {55, 55, 82, 82};
+        c.fillPolygon (leftLightX, leftLightY, 4); //left light
+        c.setColor (lightStand); //right light mount
+        c.fillRect (495, 50, 10, 25);
+        c.setColor (blueLights);
+        int rightLightX[] = {483, 517, 513, 487};
+        int rightLightY[] = {55, 55, 82, 82};
+        c.fillPolygon (rightLightX, rightLightY, 4); //right light
+        //Left Pillar
+        c.setColor (pillarBase); //pillar top and bottom
+        int[] topLPillarX = {37, 113, 105, 45};
+        int[] topLPillarY = {0, 0, 50, 50};
+        c.fillPolygon (topLPillarX, topLPillarY, 4); //left pillar top
+        int[] bottomLPillarX = {105, 45, 37, 113};
+        int[] bottomLPillarY = {380, 380, 430, 430};
+        c.fillPolygon (bottomLPillarX, bottomLPillarY, 4); //left pillar bottom
+        c.setColor (pillarRims); //yellow rims
+        c.fillOval (45, 44, 60, 10); //top rings
+        c.fillOval (45, 43, 60, 10);
+        c.fillOval (45, 42, 60, 10);
+        c.fillOval (45, 375, 60, 10); //bottom rings
+        c.fillOval (45, 376, 60, 10);
+        c.fillOval (45, 377, 60, 10);
+        c.setColor (pillarBaseShadow);
+        c.fillOval (45, 45, 60, 10); //top shadow
+        int green = 117;
+        int pillarX = 50;
+        for (int i = 1 ; i <= 50 ; i++) //using a for loop to create the pillars
+        {
+            c.setColor (new Color (229, green, 117)); //making the colour lighter
+            c.drawLine (pillarX, 50, pillarX, 380); //drawing the pillar line by line
+            green++;
+            pillarX++;
+        }
+        c.setColor (pillarLines); //line color
+        c.drawLine (59, 50, 59, 380); //pillar lines
+        c.drawLine (60, 50, 60, 380);
+        c.drawLine (61, 50, 61, 380);
+        c.drawLine (74, 50, 74, 380);
+        c.drawLine (75, 50, 75, 380);
+        c.drawLine (76, 50, 76, 380);
+        c.drawLine (89, 50, 89, 380);
+        c.drawLine (90, 50, 90, 380);
+        c.drawLine (91, 50, 91, 380);
+        c.fillArc (50, -40, 10, 80, 0, -180); //pillar base indents
+        c.fillArc (69, -40, 13, 80, 0, -180);
+        c.fillArc (90, -40, 10, 80, 0, -180);
+        c.fillArc (50, 390, 10, 80, 0, 180);
+        c.fillArc (69, 390, 13, 80, 0, 180);
+        c.fillArc (90, 390, 10, 80, 0, 180);
+        //Right Pillar
+        c.setColor (pillarBase); //pillar top and bottom
+        int[] topRPillarX = {763, 687, 695, 755};
+        int[] topRPillarY = {0, 0, 50, 50};
+        c.fillPolygon (topRPillarX, topRPillarY, 4); //right pillar top
+        int[] bottomRPillarX = {695, 755, 763, 687};
+        int[] bottomRPillarY = {380, 380, 430, 430};
+        c.fillPolygon (bottomRPillarX, bottomRPillarY, 4); //right pillar bottom
+        c.setColor (pillarRims); //yellow rims
+        c.fillOval (695, 44, 60, 10); //top ring
+        c.fillOval (695, 43, 60, 10);
+        c.fillOval (695, 42, 60, 10);
+        c.fillOval (695, 375, 60, 10); //bottom rings
+        c.fillOval (695, 376, 60, 10);
+        c.fillOval (695, 377, 60, 10);
+        c.setColor (pillarBaseShadow);
+        c.fillOval (695, 45, 60, 10); //top shadow
+        green = 167;
+        pillarX = 700;
+        for (int i = 1 ; i <= 50 ; i++)
+        {
+            c.setColor (new Color (229, green, 117)); //making the colour lighter
+            c.drawLine (pillarX, 50, pillarX, 380); //drawing the pillar line by line
+            green--;
+            pillarX++;
+        }
+        c.setColor (pillarLines); //line color
+        c.drawLine (739, 50, 739, 380); //pillar lines
+        c.drawLine (740, 50, 740, 380);
+        c.drawLine (741, 50, 741, 380);
+        c.drawLine (724, 50, 724, 380);
+        c.drawLine (725, 50, 725, 380);
+        c.drawLine (726, 50, 726, 380);
+        c.drawLine (709, 50, 709, 380);
+        c.drawLine (710, 50, 710, 380);
+        c.drawLine (711, 50, 711, 380);
+        c.fillArc (700, -40, 10, 80, 0, -180); //pillar base indents
+        c.fillArc (719, -40, 13, 80, 0, -180);
+        c.fillArc (740, -40, 10, 80, 0, -180);
+        c.fillArc (700, 390, 10, 80, 0, 180);
+        c.fillArc (719, 390, 13, 80, 0, 180);
+        c.fillArc (740, 390, 10, 80, 0, 180);
+    }
+
+
+    public void title ()
+    {
+        c.setColor (Color.white);
+        c.setFont (new Font ("Century Schoolbook", 1, 24)); //title font
+        c.drawString ("AR Theatre", 335, 30); //title
+    } //end title
+
+
+    public void mainMenu ()
+    {
+        arTheatre (); //calling the backround
+        title (); //printing the title
+        c.setColor (Color.white);
+        c.setFont (body);
+        c.drawString ("Main Menu", 361, 155);
+        c.drawLine (360, 160, 440, 160);
+        c.drawString ("(1) Instructions", 260, 190); //printing main menu options
+        c.drawString ("(2) Seating", 260, 210); //^
+        c.drawString ("(3) Buy a Ticket", 260, 230); //^
+        c.drawString ("(4) Goodbye", 260, 250); //^
+        c.drawString ("Please select an option from the main menu:", 260, 270); //asking the user to enter an option
+        menuChoice = c.getChar ();
+        if (menuChoice != '1' && menuChoice != '2' && menuChoice != '3' && menuChoice != '4')
+        {
+            JOptionPane.showMessageDialog (null, "Please enter a valid option.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping main menu options
+            c.clear ();
+        }
+    } //end mainMenu
+
+
+    public void instructions ()
+    {
+        arTheatre (); //calling the background
+        c.setColor (Color.white);
+        c.setFont (new Font ("Century Schoolbook", 1, 24));
+        c.drawString ("Instructions", 330, 30); //Writing Instructions
+        c.setFont (body);
+        c.drawString ("Hello!", 380, 150); //greeting
+        c.drawString ("Welcome to the seating program for the", 260, 170); //instructions
+        c.drawString ("AR Theatre. This program will keep track of", 250, 190); //^
+        c.drawString ("the number of seats purchased at the AR", 240, 210); //^
+        c.drawString ("Theatre. Seating prices will be determined by", 230, 230); //^
+        c.drawString ("location: the closest to the stage will be more", 215, 250); //^
+        c.drawString ("expensive than seats near the back. You may see which seats", 190, 270); //^
+        c.drawString (" are available and taken at any time in a file.", 170, 290); //^
+        c.drawString ("In Main Menu you may choose to open up instructions, see the", 170, 320); //^
+        c.drawString ("seating file, input seats or exit. You may access main menu from", 180, 340); //^
+        c.drawString ("instructions, display and goodbye.", 190, 360); //^
+    } //end instructions
+
+
+    public void seating ()
+    {
+        int rowNumber; //stores the row number they entered
+        int rowX = 0; //helps print the seats
+        int rowY = 0; //^
+        int seatNumberX = 0; //helps print the seat numbers
+        int seatNumberY = 0; //^
+        int seatNumber; //stores the seat number
+        int numberSpacing = 0; //stores the spacing inbetween numbers
+        String sRowNumber; //errortraps the row number
+        Font seatNumbers = new Font ("Malgun Gothic", 1, 35);
+        Color backWall = new Color (84, 14, 48); //back wall (purple)
+
+        for (int m = 1 ; m < 2 ; m++)
+        {
+            c.setColor (backWall);
+            c.fillRect (0, 0, 800, 500); //background
+            c.setColor (Color.white);
+            c.drawRect (305, 5, 200, 40); //drawing a rectangle around the title
+            title ();
+            c.setColor (Color.red);
+            c.fillRect (20, 5, 80, 40); //legend
+            c.setColor (Color.cyan);
+            c.fillRect (700, 5, 80, 40); //legend
+            c.setColor (Color.white);
+            c.setFont (body);
+            c.drawString (" = An empty seat", 110, 30); //legend
+            c.drawString ("A taken seat = ", 580, 30); //legend
+            //Seating instructions
+            c.drawString ("Hello! Welcome to the seating portion of our program. Here you will be able to see which seats are available", 20, 80);
+            c.drawString ("and taken inside the AR Theatre. On the next screen, you will be asked to enter a row number. In this theatre", 20, 100);
+            c.drawString ("there are 20 rows, with 30 seats per row. If you enter in 1 on the next screen you will see seats 1-30. If a seat", 20, 120);
+            c.drawString ("is red, that means it is empty and if a seat is cyan, then it has already been occupied. If this is the first time", 20, 140);
+            c.drawString ("you are using our program, there may not be any seats that are occupied and therefore they will all be red.", 20, 160);
+            c.drawString ("In the Main Menu, you may choose to buy a seat under the Buy a Ticket option. After you have entered in", 20, 180);
+            c.drawString ("your seats, you may see that they have been marked as occupied in this section of the program. After there is", 20, 200);
+            c.drawString ("at least 1 occupied seat, a file will be created and you may open it at any time. The file shows what seats are", 20, 220);
+            c.drawString ("occupied, the last name of the person that occupies them and how much they costed. To reset all the seats", 20, 240);
+            c.drawString ("to unoccupied, delete the file off of your device. A new file will be created when you purchase a seat.", 20, 260);
+            pauseProgram (); //pause program
+            c.clear (); //clearing the screen
+            c.setColor (backWall);
+            c.fillRect (0, 0, 800, 500); //background
+            c.setColor (Color.white);
+            c.drawRect (305, 5, 200, 40); //drawing a rectangle around the title
+            title ();
+            c.setColor (Color.red);
+            c.fillRect (20, 5, 80, 40); //legend
+            c.setColor (Color.cyan);
+            c.fillRect (700, 5, 80, 40); //legend
+            c.setColor (Color.white);
+            c.setFont (body);
+            c.drawString (" = An empty seat", 110, 30); //legend
+            c.drawString ("A taken seat = ", 580, 30); //legend
+            c.drawString ("Please enter the row number you want a seat in: ", 20, 77); //asking the user to input a row
+            c.setCursor (4, 47);
+            sRowNumber = c.readString (); //reading in the number as a string
+            c.setFont (seatNumbers);
+            try
+            {
+                rowNumber = Integer.parseInt (sRowNumber); //setting it to an int
+            }
+            catch (NumberFormatException e)
+            {
+                JOptionPane.showMessageDialog (null, "Please enter a valid row number.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping the row number
+                seating ();
+                break;
+            }
+            if (rowNumber < 1 || rowNumber > 20)
+            {
+                JOptionPane.showMessageDialog (null, "Please enter a valid row number.", "ERROR", JOptionPane.ERROR_MESSAGE);  //errortrapping the row number
+                seating ();
+                break;
+            }
+            seatNumber = rowNumber * 30 - 29; //writing the seatnumbers based off of the row number
+            for (int n = 0 ; n < 30 ; n++) //printing 30 seats
+            {
+                seatChar = (seats [seatNumber - 1]).charAt (0); //looking at the first character in the main array
+                for (int r = 0 ; r < numberKey.length () ; r++) //looping through the number key
+                {
+                    numberKeyChar = numberKey.charAt (r);
+                    if (seatChar == numberKeyChar) //if the first character is a number the seat is not occupied
+                    {
+                        c.setColor (Color.red); //making the box red
+                        c.fillRect (50 + rowX, 100 + rowY, 110, 65);
+                        break;
+                    }
+                    else //if the first character is a letter the seat is occupied
+                    {
+                        c.setColor (Color.cyan); //making the box cyan
+                        c.fillRect (50 + rowX, 100 + rowY, 110, 65);
+                    }
+                }
+                rowX += 120; //spacing the boxes
+                if ((n + 1) % 6 == 0) //if there are 6 boxes in one row move the y coordinate down and reset the x coordinate
+                {
+                    rowX = 0;
+                    rowY += 75;
+                }
+                if (seatNumber >= 10 && seatNumber <= 99)
+                {
+                    numberSpacing = 10; //spacing the 2-digit numbers
+                }
+                else if (seatNumber >= 100)
+                {
+                    numberSpacing = 20; //spacing the 3-digit numbers
+                }
+                c.setColor (Color.white);
+                c.drawString (Integer.toString (seatNumber), 95 + seatNumberX - numberSpacing, 145 + seatNumberY); //printing the seat number
+                seatNumberX += 120; //spacing the seat numbers
+                if (seatNumberX == 720) //if there are 6 seat numbers reset x and add 75 to y
+                {
+                    seatNumberX = 0;
+                    seatNumberY += 75;
+                }
+                seatNumber++;
+            }
+            break;
+        }
+    } //end of seating
+
+
+    public void askData ()
+    {
+        title (); //calls title
+        int[] iSeats = new int [600]; //integer version of the giant array
+        Color backWall = new Color (84, 14, 48); //back wall (purple)
+        int askSeatSpacing; //
+        int askSeatCursor;
+        char lastNameChar;
+        boolean leaveForLoop = false;
+        String sTPlusOne; // stores the String version of t plus one
+
+
+        c.setColor (backWall);
+        c.fillRect (0, 0, 800, 500);
+        c.setColor (Color.white);
+        c.drawRect (100, 5, 600, 40);
+        title ();
+        for (int m = 1 ; m < 2 ; m++)
+        {
+            c.setFont (body);
+            c.drawString ("Last name: ", 20, 77);
+            c.setCursor (4, 14);
+            lastName = c.readString ();
+            for (int o = 0 ; o < lastName.length () ; o++)
+            {
+                lastNameChar = lastName.charAt (o);
+                for (int p = 0 ; p < numberKey.length () ; p++)
+                {
+                    numberKeyChar = numberKey.charAt (p);
+                    if (lastNameChar == numberKeyChar)
+                    {
+                        JOptionPane.showMessageDialog (null, "Your last name can't contain any numbers.", "ERROR", JOptionPane.ERROR_MESSAGE);
+                        askData ();
+                        leaveForLoop = true;
+                        break;
+                    }
+                }
+                if (leaveForLoop == true)
+                {
+                    break;
+                }
+            }
+            if (leaveForLoop == true)
+            {
+                break;
+            }
+            c.drawString ("Number of tickets: ", 20, 115);
+            c.setCursor (6, 20);
+            sNumTickets = c.readString ();
+            int chosenSeat;
+            for (int i = 1 ; i < 2 ; i++)
+            {
+                try
+                {
+                    numTickets = Integer.parseInt (sNumTickets);
+                    if (numTickets < 1 || numTickets > 600)
+                    {
+                        JOptionPane.showMessageDialog (null, "Please enter an integer between 1 and 600.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping main menu
+                        askData ();
+                        leaveForLoop = true;
+                        break;
+                    }
+                }
+                catch (NumberFormatException e)
+                {
+                    JOptionPane.showMessageDialog (null, "Please enter a valid integer.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping main menu
+                    askData ();
+                    leaveForLoop = true;
+                    break;
+                }
+                askSeatSpacing = 155;
+                askSeatCursor = 8;
+                sSeatNumList = new String [numTickets];
+                seatNumList = new int [numTickets];
+                for (int j = 0 ; j < numTickets ; j++)
+                {
+                    c.drawString ("Seat number " + (j + 1) + ": ", 20, askSeatSpacing);
+                    c.setCursor (askSeatCursor, 17);
+                    sSeatNumList [j] = c.readString ();
+                    askSeatSpacing += 40;
+                    askSeatCursor += 2;
+
+                    try
+                    {
+                        seatNumList [j] = Integer.parseInt (sSeatNumList [j]);
+                        for (int k = 0 ; k < j ; k++)
+                        {
+                            if (seatNumList [k] == seatNumList [j])
+                            {
+                                JOptionPane.showMessageDialog (null, "All seat numbers must be different.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping main menu
+                                askData ();
+                                leaveForLoop = true;
+                                break;
+                            }
+                        }
+                        for (int t = 0 ; t < 600 ; t++) // runs through all of the indices in the giant array
+                        {
+                            sTPlusOne = Integer.toString (t + 1);
+                            if (!(seats [t].equals (sTPlusOne)) && sSeatNumList [j].equals (sTPlusOne)) // checks to see if the seat that the user inputted is taken
+                            {
+                                JOptionPane.showMessageDialog (null, "Sorry! This seat is already taken.", "ERROR", JOptionPane.ERROR_MESSAGE);
+                                askData ();
+                                leaveForLoop = true;
+                                break;
+                            }
+                        }
+
+                        if (seatNumList [j] < 1 || seatNumList [j] > 600)
+                        {
+                            JOptionPane.showMessageDialog (null, "Please enter an integer between 1 and 600.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping main menu
+                            askData ();
+                            leaveForLoop = true;
+                            break;
+                        }
+                        if (sSeatNumList [j].charAt (0) != '1' && sSeatNumList [j].charAt (0) != '2' && sSeatNumList [j].charAt (0) != '3' && sSeatNumList [j].charAt (0) != '4' && sSeatNumList [j].charAt (0) != '5' && sSeatNumList [j].charAt (0) != '6' && sSeatNumList [j].charAt (0) != '7' && sSeatNumList [j].charAt (0) != '8' && sSeatNumList [j].charAt (0) != '9' && sSeatNumList [j].charAt (0) != '0')
+                        {
+                            JOptionPane.showMessageDialog (null, "This seat is taken.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping main menu
+                            leaveForLoop = true;
+                            askData ();
+                            break;
+                        }
+
+                        if (leaveForLoop == true)
+                        {
+                            break;
+                        }
+
+                    } //end of try
+                    catch (NumberFormatException e)
+                    {
+                        JOptionPane.showMessageDialog (null, "Please enter a valid seat number.", "ERROR", JOptionPane.ERROR_MESSAGE); //errortrapping main menu
+                        askData ();
+                        leaveForLoop = true;
+                        break;
+                    } //end of catch
+                    chosenSeat = seatNumList [j];
+                    seats [chosenSeat - 1] = lastName;
+                    if (askSeatSpacing >= 460)
+                    {
+                        c.clear ();
+                        c.setColor (backWall);
+                        c.fillRect (0, 0, 800, 500);
+                        c.setColor (Color.white);
+                        c.drawRect (100, 5, 600, 40);
+                        title ();
+                        c.setFont (body);
+                        askSeatSpacing = 80;
+                    }
+
+                } //end of for loop
+                if (leaveForLoop == true)
+                {
+                    break;
+                }
+            }
+        }
+
+
+
+
+        counter += 1;
+        output.println ("Last name - " + lastName);
+        for (int l = 0 ; l < numTickets ; l++)
+        {
+            output.println ("Seat " + seatNumList [l] + ": $" + buyTicket (seatNumList [l]));
+        }
+
+
+        output.flush ();
+        output.close ();
+
+
+
+    } //end askData
+
+
+
+    private int buyTicket (int ticketNumber)  //return method
+    {
+        int ticketPrice = 1000 - ((int) (Math.floor (ticketNumber / 30.0)) * 25); //calculates the ticket price
+        return ticketPrice;
+    }
+
+
+    public void display ()
+    {
+        int ticketPrice = 100;
+        Color backWall = new Color (84, 14, 48); //back wall (purple)
+        c.setColor (backWall);
+        c.fillRect (0, 0, 800, 500); //background
+        c.setColor (Color.white);
+        c.drawRect (100, 5, 600, 40); //box around the title
+        title ();
+        c.setFont (body);
+        c.drawString ("You have " + numTickets + " tickets in your cart.", 20, 77); //printing the numeber of tickets in your cart
+        int total = 0;
+        for (int i = 0 ; i < numTickets ; i++)
+        {
+            c.drawString ("Seat number " + seatNumList [i] + " ~ $" + buyTicket (seatNumList [i]), 20, ticketPrice); //printing off the seats you selected and their price
+            total += buyTicket (seatNumList [i]); //using the return method
+            ticketPrice += 25;
+        }
+
+
+        c.drawString ("Subtotal: $" + total + ".00", 20, ticketPrice); //writing the final price
+        ticketPrice += 25; //adding the spacing
+        if ((Math.round (HST * total * 10) - HST * total * 10) != 0)
+        {
+            c.drawString ("HST: $" + HST * total, 20, ticketPrice); //printing the tax
+            ticketPrice += 25; //line spacing
+            c.drawString ("Total: $" + (HST * total + total), 20, ticketPrice); //printing the total
+        }
+
+
+        else
+        {
+            c.drawString ("HST: $" + HST * total + "0", 20, ticketPrice); //printing the tax
+            ticketPrice += 25; //spacing
+            c.drawString ("Total: $" + (HST * total + total) + "0", 20, ticketPrice); //printing the total
+        }
+    } //end display
+
+
+
+    public void pauseProgram ()
+    {
+        c.setColor (Color.white);
+        c.setFont (new Font ("Century", 1, 18));
+        c.drawString ("Please press any key to continue: ", 10, 495); //asks the user to press any key to continue
+        char contProgram = c.getChar ();
+        c.clear (); //clears the screen
+    } //end of pauseProgram
+
+
+    public void goodbye ()
+    {
+        arTheatre ();
+        title ();
+        c.setColor (Color.white);
+        c.setFont (body);
+        c.drawString ("Goodbye", 370, 155);
+        c.drawLine (369, 160, 432, 160);
+        c.drawString ("This program was created by Alexandra ", 260, 180); //goodbye message
+        c.drawString ("Miller and Radha Kotra. Thank you for", 260, 200); //^
+        c.drawString ("using it. Press any key to exit.", 260, 220); //^
+        c.setFont (new Font ("Malgun Gothic", 1, 40));
+        c.drawString ("Goodbye!", 310, 300); //big goodbye
+    } //end goodbye
+
+
+    public static void main (String[] args)
+    {
+        Theatre t = new Theatre ();
+        t.splashScreen ();
+        t.pauseProgram ();
+        while (true) //always runs until a break; is found
+        {
+            t.mainMenu ();
+            if (t.menuChoice == '1') //if the user enters 1 in main menu
+            {
+                t.instructions (); //calls instructions
+                t.pauseProgram ();
+            }
+            else if (t.menuChoice == '2') //if the user enters 2 in main menu
+            {
+                t.seating (); //calls seating
+                t.pauseProgram ();
+            }
+            else if (t.menuChoice == '3') //if the user enters 3 in main menu
+            {
+                t.askData (); //calls askData
+                t.pauseProgram ();
+                t.display (); //calls display
+                t.pauseProgram ();
+            }
+            else if (t.menuChoice == '4') //if the user enters 4 in main menu
+            {
+                break;
+            }
+        }
+
+
+        t.goodbye ();
+        t.pauseProgram ();
+        System.exit (0);
+    } // main method
+} // Theatre class

@@ -32,12 +32,12 @@ Follow on-screen instructions to navigate through available shows, select seatin
 
 User information is automatically saved upon program exit and loaded during subsequent sessions.
 This ensures a seamless and personalized experience for users.
-### 4.Cart Functionality:
+### 4. Cart Functionality:
 
 Use the cart option to review and modify your selected tickets before confirming the purchase.
 ## Contributions
 Contributions to the Theatre Ticket Management System are welcome. Feel free to fork the repository, create a new branch, make changes, and submit a pull request.
 
 ## Credits
-Developed by Radha Kotra
-Inspired by the need for an efficient and user-friendly theatre ticketing system.
+* Developed by Radha Kotra
+* Inspired by the need for an efficient and user-friendly theatre ticketing system.
